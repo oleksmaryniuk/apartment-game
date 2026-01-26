@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apartment Exploration</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #222;
+    }
+    #gameContainer {
+      position: relative;
+    }
+    canvas {
+      display: block;
+      border: 2px solid #444;
+    }
+    #hud {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 20px;
+      font-size: 32px;
+    }
+    .hud-item {
+      opacity: 0.3;
+      filter: grayscale(100%);
+      transition: all 0.3s ease;
+    }
+    .hud-item.collected {
+      opacity: 1;
+      filter: grayscale(0%);
+      text-shadow: 0 0 10px #fff, 0 0 20px #ff0, 0 0 30px #ff0;
+    }
+    #winOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    #winOverlay h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    #resetBtn {
+      padding: 15px 30px;
+      font-size: 20px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+    }
+    #resetBtn:hover {
+      background: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="1200" height="800"></canvas>
+    <div id="hud">
+      <span id="keyIndicator" class="hud-item">🔑</span>
+      <span id="eyesIndicator" class="hud-item">👀</span>
+    </div>
+    <div id="winOverlay">
+      <h1>You Win!</h1>
+      <button id="resetBtn">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const keyIndicator = document.getElementById('keyIndicator');
+    const eyesIndicator = document.getElementById('eyesIndicator');
+    const winOverlay = document.getElementById('winOverlay');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Game constants
+    const PLAYER_RADIUS = 16;
+    const PLAYER_SPEED = 150; // pixels per second
+    const PICKUP_DISTANCE = 50;
+    const SPAWN_X = 573;
+    const SPAWN_Y = 640;
+
+    // Item positions (invisible on map)
+    const KEY_POS = { x: 1030, y: 160 };
+    const EYES_POS = { x: 615, y: 150 };
+
+    // Static walls
+    const staticWalls = [
+      // Outer perimeter walls
+      { x: 100, y: 75, width: 1000, height: 8 },     // Top wall
+      { x: 1092, y: 75, width: 8, height: 650 },     // Right wall
+      { x: 100, y: 717, width: 1000, height: 8 },    // Bottom wall
+      { x: 100, y: 75, width: 8, height: 350 },      // Left wall (upper part)
+      { x: 100, y: 525, width: 8, height: 200 },     // Left wall (lower part)
+
+      // Left room walls
+      { x: 100, y: 442, width: 280, height: 8 },     // Bottom wall of left room
+      { x: 372, y: 300, width: 8, height: 150 },     // Right wall of left room
+
+      // Center room walls
+      { x: 380, y: 292, width: 390, height: 8 },     // Top wall of center room
+      { x: 762, y: 300, width: 8, height: 250 },     // Right wall of center room
+      { x: 510, y: 542, width: 260, height: 8 },     // Bottom wall of center room
+    ];
+
+    // Conditional wall (blocks kitchen entrance until key is collected)
+    const conditionalWall = { x: 100, y: 425, width: 8, height: 100 };
+
+    // Game state
+    let player = { x: SPAWN_X, y: SPAWN_Y };
+    let hasKey = false;
+    let hasEyes = false;
+    let keys = { up: false, down: false, left: false, right: false };
+    let lastTime = 0;
+
+    // Load background image
+    const bgImage = new Image();
+    bgImage.src = 'apartment.png';
+
+    // Get active walls based on game state
+    function getActiveWalls() {
+      if (hasKey) {
+        return staticWalls;
+      }
+      return [...staticWalls, conditionalWall];
+    }
+
+    // Circle vs AABB collision detection
+    function circleRectCollision(cx, cy, radius, rect) {
+      const closestX = Math.max(rect.x, Math.min(cx, rect.x + rect.width));
+      const closestY = Math.max(rect.y, Math.min(cy, rect.y + rect.height));
+      const dx = cx - closestX;
+      const dy = cy - closestY;
+      return (dx * dx + dy * dy) < (radius * radius);
+    }
+
+    // Check if position collides with any wall
+    function collidesWithWalls(x, y) {
+      const walls = getActiveWalls();
+      for (const wall of walls) {
+        if (circleRectCollision(x, y, PLAYER_RADIUS, wall)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Keep player in bounds
+    function clampToBounds(x, y) {
+      const minX = PLAYER_RADIUS;
+      const maxX = canvas.width - PLAYER_RADIUS;
+      const minY = PLAYER_RADIUS;
+      const maxY = canvas.height - PLAYER_RADIUS;
+      return {
+        x: Math.max(minX, Math.min(maxX, x)),
+        y: Math.max(minY, Math.min(maxY, y))
+      };
+    }
+
+    // Calculate distance between two points
+    function distance(x1, y1, x2, y2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // Update game state
+    function update(deltaTime) {
+      if (hasEyes) return; // Game won, stop updating
+
+      // Calculate movement direction
+      let dx = 0;
+      let dy = 0;
+      if (keys.up) dy -= 1;
+      if (keys.down) dy += 1;
+      if (keys.left) dx -= 1;
+      if (keys.right) dx += 1;
+
+      // Normalize diagonal movement
+      if (dx !== 0 && dy !== 0) {
+        const len = Math.sqrt(dx * dx + dy * dy);
+        dx /= len;
+        dy /= len;
+      }
+
+      // Calculate new position
+      const moveAmount = PLAYER_SPEED * deltaTime;
+      let newX = player.x + dx * moveAmount;
+      let newY = player.y + dy * moveAmount;
+
+      // Clamp to bounds
+      const bounded = clampToBounds(newX, newY);
+      newX = bounded.x;
+      newY = bounded.y;
+
+      // Axis-separated collision for smooth sliding
+      // Try X movement first
+      if (!collidesWithWalls(newX, player.y)) {
+        player.x = newX;
+      }
+      // Try Y movement
+      if (!collidesWithWalls(player.x, newY)) {
+        player.y = newY;
+      }
+
+      // Check item pickups
+      if (!hasKey && distance(player.x, player.y, KEY_POS.x, KEY_POS.y) < PICKUP_DISTANCE) {
+        hasKey = true;
+        keyIndicator.classList.add('collected');
+      }
+
+      if (hasKey && !hasEyes && distance(player.x, player.y, EYES_POS.x, EYES_POS.y) < PICKUP_DISTANCE) {
+        hasEyes = true;
+        eyesIndicator.classList.add('collected');
+        winOverlay.style.display = 'flex';
+      }
+    }
+
+    // Render game
+    function render() {
+      // Clear canvas
+      ctx.fillStyle = '#333';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw background image if loaded
+      if (bgImage.complete && bgImage.naturalWidth > 0) {
+        ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+      }
+
+      // Draw walls
+      ctx.fillStyle = '#000';
+      const walls = getActiveWalls();
+      for (const wall of walls) {
+        ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+      }
+
+      // Draw player
+      ctx.fillStyle = '#00ff00';
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, PLAYER_RADIUS, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#008800';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Game loop
+    function gameLoop(currentTime) {
+      const deltaTime = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+
+      update(deltaTime);
+      render();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Reset game
+    function resetGame() {
+      player.x = SPAWN_X;
+      player.y = SPAWN_Y;
+      hasKey = false;
+      hasEyes = false;
+      keyIndicator.classList.remove('collected');
+      eyesIndicator.classList.remove('collected');
+      winOverlay.style.display = 'none';
+    }
+
+    // Input handling
+    document.addEventListener('keydown', (e) => {
+      switch (e.key) {
+        case 'ArrowUp': keys.up = true; e.preventDefault(); break;
+        case 'ArrowDown': keys.down = true; e.preventDefault(); break;
+        case 'ArrowLeft': keys.left = true; e.preventDefault(); break;
+        case 'ArrowRight': keys.right = true; e.preventDefault(); break;
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      switch (e.key) {
+        case 'ArrowUp': keys.up = false; break;
+        case 'ArrowDown': keys.down = false; break;
+        case 'ArrowLeft': keys.left = false; break;
+        case 'ArrowRight': keys.right = false; break;
+      }
+    });
+
+    resetBtn.addEventListener('click', resetGame);
+
+    // Start game
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

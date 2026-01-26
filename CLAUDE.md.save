@@ -1,0 +1,35 @@
+Project Goal: Create a simple 2D top-down "Apartment Exploration" mini-game in a single index.html file using Vanilla JavaScript and HTML5 Canvas.
+
+Technical Requirements:
+
+Rendering: Use a single <canvas> element. The background should be an image named apartment.png.
+
+Player Movement: > - The player is represented as a small dot/circle.
+
+Implementation of movement via Arrow Keys (Up, Down, Left, Right) with pixel-based increments.
+
+Initial spawn point: Hallway (I will provide exact coordinates later).
+
+Game Mechanics & State:
+
+Items: Two items represented by emojis: 🔑 (Key) and 👀 (Eyes).
+
+Interaction: Picking up an item occurs when the player's coordinates overlap with the item's position.
+
+Conditional Obstacle: There is a horizontal "wall" (collision line) blocking the entrance to the kitchen. This wall must disappear ONLY after the 🔑 (Key) is collected.
+
+UI/HUD:
+
+In the top-right corner, implement a status indicator for both items.
+
+Default state: Greyed out (low opacity).
+
+Collected state: Fully visible/colored once picked up.
+
+Code Structure:
+
+Keep everything in one file for portability.
+
+Use requestAnimationFrame for a smooth game loop.
+
+Define a walls array for collision detection (placeholders for now).
