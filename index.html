@@ -42,7 +42,7 @@
       filter: grayscale(0%);
       text-shadow: 0 0 10px #fff, 0 0 20px #ff0, 0 0 30px #ff0;
     }
-    #message {
+    #message, #gameOverMessage {
       position: absolute;
       bottom: 40px;
       left: 50%;
@@ -56,6 +56,23 @@
       text-align: center;
       display: none;
       box-shadow: 0 0 20px rgba(0, 200, 200, 0.5);
+    }
+    #gameOverMessage {
+      background: rgba(150, 50, 50, 0.9);
+      box-shadow: 0 0 20px rgba(200, 50, 50, 0.5);
+    }
+    #gameOverMessage button {
+      margin-top: 15px;
+      padding: 10px 30px;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background: #fff;
+      color: #333;
+    }
+    #gameOverMessage button:hover {
+      background: #ddd;
     }
     #mobileWarning {
       display: none;
@@ -106,6 +123,10 @@
       <span id="eyesIndicator" class="hud-item">👀</span>
     </div>
     <div id="message">Молодець, ти знайшла "гаряче", далі уже справа за тобою.</div>
+    <div id="gameOverMessage">
+      <div>Ой! Ти наступила на щось неприємне 😱</div>
+      <button onclick="resetGame()">Спробувати ще раз</button>
+    </div>
   </div>
 
   <script>
@@ -126,6 +147,7 @@
     const keyIndicator = document.getElementById('keyIndicator');
     const eyesIndicator = document.getElementById('eyesIndicator');
     const messageEl = document.getElementById('message');
+    const gameOverEl = document.getElementById('gameOverMessage');
 
     // Game constants
     const PLAYER_RADIUS = 16;
@@ -137,6 +159,34 @@
     // Item positions (invisible on map)
     const KEY_POS = { x: 1030, y: 160 };
     const EYES_POS = { x: 615, y: 150 };
+
+    // Obstacles (spiders and bananas)
+    const OBSTACLE_RADIUS = 30;
+    const OBSTACLE_MOVE_RADIUS = 45;
+    const OBSTACLE_SPEED = 80; // pixels per second
+    const obstacles = [
+      // Spiders 🕷️
+      { baseX: 300, baseY: 600, x: 300, y: 600, targetX: 300, targetY: 600, type: 'spider' },
+      { baseX: 850, baseY: 400, x: 850, y: 400, targetX: 850, targetY: 400, type: 'spider' },
+      { baseX: 950, baseY: 650, x: 950, y: 650, targetX: 950, targetY: 650, type: 'spider' },
+      { baseX: 450, baseY: 450, x: 450, y: 450, targetX: 450, targetY: 450, type: 'spider' },
+      // Bananas 🍌
+      { baseX: 200, baseY: 500, x: 200, y: 500, targetX: 200, targetY: 500, type: 'banana' },
+      { baseX: 650, baseY: 650, x: 650, y: 650, targetX: 650, targetY: 650, type: 'banana' },
+      { baseX: 900, baseY: 200, x: 900, y: 200, targetX: 900, targetY: 200, type: 'banana' },
+      { baseX: 550, baseY: 380, x: 550, y: 380, targetX: 550, targetY: 380, type: 'banana' },
+    ];
+
+    // Generate random target within movement radius
+    function setNewTarget(obs) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.random() * OBSTACLE_MOVE_RADIUS;
+      obs.targetX = obs.baseX + Math.cos(angle) * dist;
+      obs.targetY = obs.baseY + Math.sin(angle) * dist;
+    }
+
+    // Initialize random targets
+    obstacles.forEach(obs => setNewTarget(obs));
 
     // Static walls
     const staticWalls = [
@@ -170,6 +220,7 @@
     let player = { x: SPAWN_X, y: SPAWN_Y };
     let hasKey = false;
     let hasEyes = false;
+    let gameOver = false;
     let keys = { up: false, down: false, left: false, right: false };
     let lastTime = 0;
 
@@ -220,9 +271,42 @@
       return Math.sqrt(dx * dx + dy * dy);
     }
 
+    // Check obstacle collision
+    function checkObstacleCollision() {
+      for (const obs of obstacles) {
+        if (distance(player.x, player.y, obs.x, obs.y) < PLAYER_RADIUS + OBSTACLE_RADIUS - 10) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Update obstacle positions
+    function updateObstacles(deltaTime) {
+      for (const obs of obstacles) {
+        const dx = obs.targetX - obs.x;
+        const dy = obs.targetY - obs.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 2) {
+          // Reached target, set new one
+          setNewTarget(obs);
+        } else {
+          // Move towards target
+          const moveAmount = OBSTACLE_SPEED * deltaTime;
+          const ratio = Math.min(moveAmount / dist, 1);
+          obs.x += dx * ratio;
+          obs.y += dy * ratio;
+        }
+      }
+    }
+
     // Update game state
     function update(deltaTime) {
-      if (hasEyes) return; // Game won, stop updating
+      // Always update obstacles for animation
+      updateObstacles(deltaTime);
+
+      if (hasEyes || gameOver) return; // Game won or lost, stop updating
 
       // Calculate movement direction
       let dx = 0;
@@ -270,6 +354,31 @@
         eyesIndicator.classList.add('collected');
         messageEl.style.display = 'block';
       }
+
+      // Check obstacle collision
+      if (checkObstacleCollision()) {
+        gameOver = true;
+        gameOverEl.style.display = 'block';
+      }
+    }
+
+    // Reset game
+    function resetGame() {
+      player.x = SPAWN_X;
+      player.y = SPAWN_Y;
+      hasKey = false;
+      hasEyes = false;
+      gameOver = false;
+      keyIndicator.classList.remove('collected');
+      eyesIndicator.classList.remove('collected');
+      messageEl.style.display = 'none';
+      gameOverEl.style.display = 'none';
+      // Reset obstacle positions
+      obstacles.forEach(obs => {
+        obs.x = obs.baseX;
+        obs.y = obs.baseY;
+        setNewTarget(obs);
+      });
     }
 
     // Render game
@@ -283,6 +392,18 @@
       const walls = getActiveWalls();
       for (const wall of walls) {
         ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+      }
+
+      // Draw obstacles (1.5x bigger)
+      ctx.font = '42px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (const obs of obstacles) {
+        if (obs.type === 'spider') {
+          ctx.fillText('🕷️', obs.x, obs.y);
+        } else if (obs.type === 'banana') {
+          ctx.fillText('🍌', obs.x, obs.y);
+        }
       }
 
       // Draw sun glow when eyes collected (highlights where wall disappeared)
@@ -361,8 +482,8 @@
       ctx.arc(px, py - 21, 2, 0, Math.PI * 2);
       ctx.fill();
 
-      // Eyes
-      ctx.fillStyle = '#000';
+      // Eyes (blue)
+      ctx.fillStyle = '#1E90FF';
       ctx.beginPath();
       ctx.arc(px - 3, py - 12, 1.5, 0, Math.PI * 2);
       ctx.arc(px + 3, py - 12, 1.5, 0, Math.PI * 2);
