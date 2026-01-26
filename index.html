@@ -42,35 +42,20 @@
       filter: grayscale(0%);
       text-shadow: 0 0 10px #fff, 0 0 20px #ff0, 0 0 30px #ff0;
     }
-    #winOverlay {
+    #message {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 150, 150, 0.9);
       color: white;
+      padding: 20px 40px;
+      border-radius: 12px;
       font-family: Arial, sans-serif;
-    }
-    #winOverlay h1 {
-      font-size: 48px;
-      margin-bottom: 20px;
-    }
-    #resetBtn {
-      padding: 15px 30px;
-      font-size: 20px;
-      cursor: pointer;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 8px;
-    }
-    #resetBtn:hover {
-      background: #45a049;
+      font-size: 22px;
+      text-align: center;
+      display: none;
+      box-shadow: 0 0 20px rgba(0, 200, 200, 0.5);
     }
   </style>
 </head>
@@ -81,10 +66,7 @@
       <span id="keyIndicator" class="hud-item">🔑</span>
       <span id="eyesIndicator" class="hud-item">👀</span>
     </div>
-    <div id="winOverlay">
-      <h1>You Win!</h1>
-      <button id="resetBtn">Play Again</button>
-    </div>
+    <div id="message">Молодець, ти знайшла "гаряче", далі уже справа за тобою.</div>
   </div>
 
   <script>
@@ -92,8 +74,7 @@
     const ctx = canvas.getContext('2d');
     const keyIndicator = document.getElementById('keyIndicator');
     const eyesIndicator = document.getElementById('eyesIndicator');
-    const winOverlay = document.getElementById('winOverlay');
-    const resetBtn = document.getElementById('resetBtn');
+    const messageEl = document.getElementById('message');
 
     // Game constants
     const PLAYER_RADIUS = 16;
@@ -129,16 +110,17 @@
     // Conditional wall (blocks kitchen entrance until key is collected)
     const conditionalWall = { x: 100, y: 442, width: 280, height: 8 };
 
+    // Glow position (center of conditional wall, 120px higher)
+    const GLOW_X = conditionalWall.x + conditionalWall.width / 2;
+    const GLOW_Y = conditionalWall.y - 120;
+    const GLOW_RADIUS = 60;
+
     // Game state
     let player = { x: SPAWN_X, y: SPAWN_Y };
     let hasKey = false;
     let hasEyes = false;
     let keys = { up: false, down: false, left: false, right: false };
     let lastTime = 0;
-
-    // Load background image
-    const bgImage = new Image();
-    bgImage.src = 'apadwrtment.png';
 
     // Get active walls based on game state
     function getActiveWalls() {
@@ -235,26 +217,34 @@
       if (hasKey && !hasEyes && distance(player.x, player.y, EYES_POS.x, EYES_POS.y) < PICKUP_DISTANCE) {
         hasEyes = true;
         eyesIndicator.classList.add('collected');
-        winOverlay.style.display = 'flex';
+        messageEl.style.display = 'block';
       }
     }
 
     // Render game
     function render() {
-      // Clear canvas
-      ctx.fillStyle = '#333';
+      // Clear canvas with white background
+      ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw background image if loaded
-      if (bgImage.complete && bgImage.naturalWidth > 0) {
-        ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
-      }
 
       // Draw walls
       ctx.fillStyle = '#000';
       const walls = getActiveWalls();
       for (const wall of walls) {
         ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+      }
+
+      // Draw sun glow when eyes collected (highlights where wall disappeared)
+      if (hasEyes) {
+        const gradient = ctx.createRadialGradient(GLOW_X, GLOW_Y, 0, GLOW_X, GLOW_Y, GLOW_RADIUS);
+        gradient.addColorStop(0, 'rgba(150, 255, 255, 0.9)');
+        gradient.addColorStop(0.3, 'rgba(100, 220, 220, 0.6)');
+        gradient.addColorStop(0.7, 'rgba(50, 180, 180, 0.3)');
+        gradient.addColorStop(1, 'rgba(0, 150, 150, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(GLOW_X, GLOW_Y, GLOW_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       // Draw player
@@ -278,17 +268,6 @@
       requestAnimationFrame(gameLoop);
     }
 
-    // Reset game
-    function resetGame() {
-      player.x = SPAWN_X;
-      player.y = SPAWN_Y;
-      hasKey = false;
-      hasEyes = false;
-      keyIndicator.classList.remove('collected');
-      eyesIndicator.classList.remove('collected');
-      winOverlay.style.display = 'none';
-    }
-
     // Input handling
     document.addEventListener('keydown', (e) => {
       switch (e.key) {
@@ -307,8 +286,6 @@
         case 'ArrowRight': keys.right = false; break;
       }
     });
-
-    resetBtn.addEventListener('click', resetGame);
 
     // Start game
     requestAnimationFrame(gameLoop);
