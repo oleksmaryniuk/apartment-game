@@ -112,21 +112,22 @@
       { x: 100, y: 75, width: 1000, height: 8 },     // Top wall
       { x: 1092, y: 75, width: 8, height: 650 },     // Right wall
       { x: 100, y: 717, width: 1000, height: 8 },    // Bottom wall
-      { x: 100, y: 75, width: 8, height: 350 },      // Left wall (upper part)
+      { x: 100, y: 75, width: 8, height: 500 },      // Left wall (upper part)
       { x: 100, y: 525, width: 8, height: 200 },     // Left wall (lower part)
 
       // Left room walls
-      { x: 100, y: 442, width: 280, height: 8 },     // Bottom wall of left room
+      //{ x: 100, y: 442, width: 280, height: 8 },     // Bottom wall of left room
       { x: 372, y: 300, width: 8, height: 150 },     // Right wall of left room
 
       // Center room walls
+      { x: 722, y: 75, width: 8, height: 225 },     // Top horizontal wall of center room
       { x: 380, y: 292, width: 390, height: 8 },     // Top wall of center room
       { x: 762, y: 300, width: 8, height: 250 },     // Right wall of center room
       { x: 510, y: 542, width: 260, height: 8 },     // Bottom wall of center room
     ];
 
     // Conditional wall (blocks kitchen entrance until key is collected)
-    const conditionalWall = { x: 100, y: 425, width: 8, height: 100 };
+    const conditionalWall = { x: 100, y: 442, width: 280, height: 8 };
 
     // Game state
     let player = { x: SPAWN_X, y: SPAWN_Y };
@@ -137,7 +138,7 @@
 
     // Load background image
     const bgImage = new Image();
-    bgImage.src = 'apartment.png';
+    bgImage.src = 'apadwrtment.png';
 
     // Get active walls based on game state
     function getActiveWalls() {
