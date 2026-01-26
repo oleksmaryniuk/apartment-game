@@ -57,9 +57,48 @@
       display: none;
       box-shadow: 0 0 20px rgba(0, 200, 200, 0.5);
     }
+    #mobileWarning {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #222;
+      color: white;
+      font-family: Arial, sans-serif;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 40px;
+      z-index: 9999;
+    }
+    #mobileWarning .content {
+      max-width: 400px;
+    }
+    #mobileWarning h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    #mobileWarning p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #aaa;
+    }
+    #mobileWarning .emoji {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
+  <div id="mobileWarning">
+    <div class="content">
+      <div class="emoji">💻</div>
+      <h2>Ця гра доступна лише на комп'ютері</h2>
+      <p>Будь ласка, відкрий цю сторінку на комп'ютері або ноутбуці для найкращого досвіду.</p>
+    </div>
+  </div>
   <div id="gameContainer">
     <canvas id="gameCanvas" width="1200" height="800"></canvas>
     <div id="hud">
@@ -70,6 +109,18 @@
   </div>
 
   <script>
+    // Mobile device detection
+    function isMobile() {
+      const userAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const smallScreen = window.innerWidth < 1024;
+      return userAgent || smallScreen;
+    }
+
+    if (isMobile()) {
+      document.getElementById('mobileWarning').style.display = 'flex';
+      document.getElementById('gameContainer').style.display = 'none';
+    }
+
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const keyIndicator = document.getElementById('keyIndicator');
