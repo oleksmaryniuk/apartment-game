@@ -247,13 +247,81 @@
         ctx.fill();
       }
 
-      // Draw player
-      ctx.fillStyle = '#00ff00';
+      // Draw princess
+      const px = player.x;
+      const py = player.y;
+
+      // Dress (muted green, triangular shape)
+      ctx.fillStyle = '#6B8E6B';
       ctx.beginPath();
-      ctx.arc(player.x, player.y, PLAYER_RADIUS, 0, Math.PI * 2);
+      ctx.moveTo(px - 12, py + 16);
+      ctx.lineTo(px + 12, py + 16);
+      ctx.lineTo(px + 6, py - 2);
+      ctx.lineTo(px - 6, py - 2);
+      ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#008800';
-      ctx.lineWidth = 2;
+
+      // Dress details (darker green line)
+      ctx.strokeStyle = '#4A6B4A';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px, py - 2);
+      ctx.lineTo(px, py + 14);
+      ctx.stroke();
+
+      // Body/torso (skin color)
+      ctx.fillStyle = '#FFDBAC';
+      ctx.fillRect(px - 4, py - 6, 8, 6);
+
+      // Arms
+      ctx.fillStyle = '#FFDBAC';
+      ctx.fillRect(px - 8, py - 5, 4, 8);
+      ctx.fillRect(px + 4, py - 5, 4, 8);
+
+      // Head (skin)
+      ctx.fillStyle = '#FFDBAC';
+      ctx.beginPath();
+      ctx.arc(px, py - 12, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hair (blonde)
+      ctx.fillStyle = '#F4D03F';
+      ctx.beginPath();
+      ctx.arc(px, py - 14, 7, Math.PI, Math.PI * 2);
+      ctx.fill();
+      // Hair sides
+      ctx.fillRect(px - 7, py - 14, 3, 10);
+      ctx.fillRect(px + 4, py - 14, 3, 10);
+
+      // Crown/tiara
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.moveTo(px - 5, py - 19);
+      ctx.lineTo(px - 3, py - 23);
+      ctx.lineTo(px, py - 20);
+      ctx.lineTo(px + 3, py - 23);
+      ctx.lineTo(px + 5, py - 19);
+      ctx.closePath();
+      ctx.fill();
+
+      // Crown gem
+      ctx.fillStyle = '#FF1493';
+      ctx.beginPath();
+      ctx.arc(px, py - 21, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eyes
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(px - 3, py - 12, 1.5, 0, Math.PI * 2);
+      ctx.arc(px + 3, py - 12, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Smile
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(px, py - 10, 3, 0.1 * Math.PI, 0.9 * Math.PI);
       ctx.stroke();
     }
 
