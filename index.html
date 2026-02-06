@@ -170,11 +170,17 @@
       { baseX: 850, baseY: 400, x: 850, y: 400, targetX: 850, targetY: 400, type: 'spider' },
       { baseX: 950, baseY: 650, x: 950, y: 650, targetX: 950, targetY: 650, type: 'spider' },
       { baseX: 450, baseY: 450, x: 450, y: 450, targetX: 450, targetY: 450, type: 'spider' },
+      { baseX: 500, baseY: 180, x: 500, y: 180, targetX: 500, targetY: 180, type: 'spider' }, // Top room
       // Bananas 🍌
       { baseX: 200, baseY: 500, x: 200, y: 500, targetX: 200, targetY: 500, type: 'banana' },
       { baseX: 650, baseY: 650, x: 650, y: 650, targetX: 650, targetY: 650, type: 'banana' },
       { baseX: 900, baseY: 200, x: 900, y: 200, targetX: 900, targetY: 200, type: 'banana' },
       { baseX: 550, baseY: 380, x: 550, y: 380, targetX: 550, targetY: 380, type: 'banana' },
+      { baseX: 650, baseY: 200, x: 650, y: 200, targetX: 650, targetY: 200, type: 'banana' }, // Top room
+      // Rats 🐀
+      { baseX: 180, baseY: 650, x: 180, y: 650, targetX: 180, targetY: 650, type: 'rat' },
+      { baseX: 800, baseY: 550, x: 800, y: 550, targetX: 800, targetY: 550, type: 'rat' },
+      { baseX: 320, baseY: 150, x: 320, y: 150, targetX: 320, targetY: 150, type: 'rat' }, // Top room
     ];
 
     // Generate random target within movement radius
@@ -281,9 +287,11 @@
       return false;
     }
 
-    // Update obstacle positions
+    // Update obstacle positions (only spiders move)
     function updateObstacles(deltaTime) {
       for (const obs of obstacles) {
+        if (obs.type === 'banana') continue; // Bananas don't move
+
         const dx = obs.targetX - obs.x;
         const dy = obs.targetY - obs.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -403,6 +411,8 @@
           ctx.fillText('🕷️', obs.x, obs.y);
         } else if (obs.type === 'banana') {
           ctx.fillText('🍌', obs.x, obs.y);
+        } else if (obs.type === 'rat') {
+          ctx.fillText('🐀', obs.x, obs.y);
         }
       }
 
@@ -515,6 +525,12 @@
         case 'ArrowDown': keys.down = true; e.preventDefault(); break;
         case 'ArrowLeft': keys.left = true; e.preventDefault(); break;
         case 'ArrowRight': keys.right = true; e.preventDefault(); break;
+        case 'Enter':
+          if (gameOver) {
+            resetGame();
+            e.preventDefault();
+          }
+          break;
       }
     });
 
