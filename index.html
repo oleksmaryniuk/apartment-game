@@ -547,6 +547,12 @@
         ctx.beginPath();
         ctx.arc(GLOW_X, GLOW_Y, GLOW_RADIUS, 0, Math.PI * 2);
         ctx.fill();
+
+        // Prize icon in the center of the glow
+        ctx.font = '48px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🎁', GLOW_X, GLOW_Y);
       }
 
       // Draw princess
