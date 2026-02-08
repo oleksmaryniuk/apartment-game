@@ -214,12 +214,22 @@
       { x: 510, y: 542, width: 260, height: 8 },     // Bottom wall of center room
     ];
 
-    // Conditional wall (blocks kitchen entrance until key is collected)
-    const conditionalWall = { x: 100, y: 442, width: 280, height: 8 };
+    // Door frame (always visible - horizontal wall segments on sides)
+    const leftDoorPost = { x: 100, y: 442, width: 70, height: 8 };
+    const rightDoorPost = { x: 310, y: 442, width: 70, height: 8 };
 
-    // Glow position (center of conditional wall, 120px higher)
-    const GLOW_X = conditionalWall.x + conditionalWall.width / 2;
-    const GLOW_Y = conditionalWall.y - 120;
+    // Door itself (opens after key is collected) - horizontal gap
+    const door = { x: 170, y: 442, width: 140, height: 8 };
+
+    // Fridge (decorative element with collision in left room)
+    const fridge = { x: 115, y: 90, width: 70, height: 110 };
+
+    // Bathtub (decorative element with collision in center room - bathroom)
+    const bathtub = { x: 662, y: 310, width: 90, height: 55 };
+
+    // Glow position (center of door, 120px higher)
+    const GLOW_X = door.x + door.width / 2;
+    const GLOW_Y = door.y - 120;
     const GLOW_RADIUS = 60;
 
     // Game state
@@ -232,10 +242,13 @@
 
     // Get active walls based on game state
     function getActiveWalls() {
-      if (hasKey) {
-        return staticWalls;
+      // Door posts, fridge, and bathtub are always visible
+      const walls = [...staticWalls, leftDoorPost, rightDoorPost, fridge, bathtub];
+      // Door itself only blocks when key is not collected
+      if (!hasKey) {
+        walls.push(door);
       }
-      return [...staticWalls, conditionalWall];
+      return walls;
     }
 
     // Circle vs AABB collision detection
@@ -401,6 +414,113 @@
       for (const wall of walls) {
         ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
       }
+
+      // Draw door visually when it's closed (extend vertically for better look)
+      if (!hasKey) {
+        const doorVisualHeight = 40; // Visual height (taller than collision box)
+        const doorVisualY = door.y - (doorVisualHeight - door.height) / 2;
+
+        // Door background (wood color)
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(door.x, doorVisualY, door.width, doorVisualHeight);
+
+        // Door frame/border
+        ctx.strokeStyle = '#654321';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(door.x, doorVisualY, door.width, doorVisualHeight);
+
+        // Door handle (gold) - on right side
+        const handleX = door.x + door.width - 15;
+        const handleY = doorVisualY + doorVisualHeight / 2;
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(handleX, handleY, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#DAA520';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Door vertical line (split in middle)
+        ctx.strokeStyle = '#654321';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(door.x + door.width / 2, doorVisualY + 3);
+        ctx.lineTo(door.x + door.width / 2, doorVisualY + doorVisualHeight - 3);
+        ctx.stroke();
+      }
+
+      // Draw fridge (decorative interior element)
+      // Main body (light gray metallic)
+      ctx.fillStyle = '#E8E8E8';
+      ctx.fillRect(fridge.x, fridge.y, fridge.width, fridge.height);
+
+      // Fridge border (darker gray)
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(fridge.x, fridge.y, fridge.width, fridge.height);
+
+      // Top door (freezer compartment - about 1/3 height)
+      const topDoorHeight = fridge.height * 0.35;
+      ctx.strokeStyle = '#AAA';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(fridge.x + 3, fridge.y + 3, fridge.width - 6, topDoorHeight);
+
+      // Bottom door (main compartment)
+      const bottomDoorY = fridge.y + topDoorHeight + 6;
+      const bottomDoorHeight = fridge.height - topDoorHeight - 9;
+      ctx.strokeRect(fridge.x + 3, bottomDoorY, fridge.width - 6, bottomDoorHeight);
+
+      // Top door handle
+      ctx.fillStyle = '#666';
+      ctx.fillRect(fridge.x + fridge.width - 12, fridge.y + topDoorHeight / 2 - 2, 5, 15);
+
+      // Bottom door handle
+      ctx.fillRect(fridge.x + fridge.width - 12, bottomDoorY + bottomDoorHeight / 2 - 2, 5, 20);
+
+      // Draw bathtub (decorative interior element in bathroom)
+      // Main tub body (white/light blue)
+      ctx.fillStyle = '#F0F8FF';
+      ctx.fillRect(bathtub.x, bathtub.y, bathtub.width, bathtub.height);
+
+      // Tub border/rim (light gray)
+      ctx.strokeStyle = '#CCC';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(bathtub.x, bathtub.y, bathtub.width, bathtub.height);
+
+      // Inner tub (slightly darker to show depth)
+      ctx.fillStyle = '#E6F2FF';
+      ctx.fillRect(bathtub.x + 5, bathtub.y + 5, bathtub.width - 10, bathtub.height - 10);
+
+      // Bathtub legs (4 small circles)
+      ctx.fillStyle = '#888';
+      const legRadius = 3;
+      // Front left leg
+      ctx.beginPath();
+      ctx.arc(bathtub.x + 10, bathtub.y + bathtub.height + 3, legRadius, 0, Math.PI * 2);
+      ctx.fill();
+      // Front right leg
+      ctx.beginPath();
+      ctx.arc(bathtub.x + bathtub.width - 10, bathtub.y + bathtub.height + 3, legRadius, 0, Math.PI * 2);
+      ctx.fill();
+      // Back left leg
+      ctx.beginPath();
+      ctx.arc(bathtub.x + 10, bathtub.y + 5, legRadius, 0, Math.PI * 2);
+      ctx.fill();
+      // Back right leg
+      ctx.beginPath();
+      ctx.arc(bathtub.x + bathtub.width - 10, bathtub.y + 5, legRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Faucet (simple representation on left side)
+      ctx.fillStyle = '#B8B8B8';
+      ctx.fillRect(bathtub.x + 8, bathtub.y - 8, 12, 8);
+      // Faucet knobs
+      ctx.beginPath();
+      ctx.arc(bathtub.x + 10, bathtub.y - 3, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(bathtub.x + 18, bathtub.y - 3, 2.5, 0, Math.PI * 2);
+      ctx.fill();
 
       // Draw obstacles (1.5x bigger)
       ctx.font = '42px Arial';
