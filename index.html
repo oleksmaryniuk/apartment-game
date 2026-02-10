@@ -122,7 +122,7 @@
       <span id="keyIndicator" class="hud-item">🔑</span>
       <span id="eyesIndicator" class="hud-item">👀</span>
     </div>
-    <div id="message">Молодець, ти знайшла "гаряче", далі уже справа за тобою.</div>
+    <div id="message">Молодчинка, ти його знайшла. Звісно масіку буде складно його дістати, але думаю ти справишся</div>
     <div id="gameOverMessage">
       <div>Ой! Ти наступила на щось неприємне 😱</div>
       <button onclick="resetGame()">Спробувати ще раз</button>
@@ -155,6 +155,8 @@
     const PICKUP_DISTANCE = 50;
     const SPAWN_X = 573;
     const SPAWN_Y = 640;
+    const TRAIL_LIFETIME = 1.5; // seconds
+    const TRAIL_SPACING = 20; // pixels between trails
 
     // Item positions (invisible on map)
     const KEY_POS = { x: 1030, y: 160 };
@@ -239,6 +241,8 @@
     let gameOver = false;
     let keys = { up: false, down: false, left: false, right: false };
     let lastTime = 0;
+    let trails = [];
+    let lastTrailPos = { x: SPAWN_X, y: SPAWN_Y };
 
     // Get active walls based on game state
     function getActiveWalls() {
@@ -288,6 +292,46 @@
       const dx = x2 - x1;
       const dy = y2 - y1;
       return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    // Get current target based on game state
+    function getCurrentTarget() {
+      if (!hasKey) {
+        return KEY_POS;
+      } else if (!hasEyes) {
+        return EYES_POS;
+      }
+      return null;
+    }
+
+    // Get trail color based on distance to target (hot-cold game)
+    function getTrailColor(distanceToTarget) {
+      if (distanceToTarget < 100) {
+        // Very close - red (hot!)
+        return 'rgb(255, 0, 0)';
+      } else if (distanceToTarget < 200) {
+        // Close - red to orange
+        const t = (distanceToTarget - 100) / 100;
+        const r = 255;
+        const g = Math.floor(t * 136);
+        return `rgb(${r}, ${g}, 0)`;
+      } else if (distanceToTarget < 350) {
+        // Medium - orange to yellow to green
+        const t = (distanceToTarget - 200) / 150;
+        const r = Math.floor(255 * (1 - t));
+        const g = 255;
+        return `rgb(${r}, ${g}, 0)`;
+      } else if (distanceToTarget < 500) {
+        // Far - green to blue
+        const t = (distanceToTarget - 350) / 150;
+        const r = 0;
+        const g = Math.floor(255 * (1 - t));
+        const b = Math.floor(255 * t);
+        return `rgb(${r}, ${g}, ${b})`;
+      } else {
+        // Very far - dark blue (cold!)
+        return 'rgb(0, 0, 128)';
+      }
     }
 
     // Check obstacle collision
@@ -364,10 +408,33 @@
         player.y = newY;
       }
 
+      // Add trail if player is moving
+      const target = getCurrentTarget();
+      if (target && (dx !== 0 || dy !== 0)) {
+        const distMoved = distance(player.x, player.y, lastTrailPos.x, lastTrailPos.y);
+        if (distMoved >= TRAIL_SPACING) {
+          const distToTarget = distance(player.x, player.y, target.x, target.y);
+          trails.push({
+            x: player.x,
+            y: player.y,
+            createdAt: Date.now() / 1000,
+            color: getTrailColor(distToTarget)
+          });
+          lastTrailPos = { x: player.x, y: player.y };
+        }
+      }
+
+      // Remove old trails
+      const currentTime = Date.now() / 1000;
+      trails = trails.filter(trail => currentTime - trail.createdAt < TRAIL_LIFETIME);
+
       // Check item pickups
       if (!hasKey && distance(player.x, player.y, KEY_POS.x, KEY_POS.y) < PICKUP_DISTANCE) {
         hasKey = true;
         keyIndicator.classList.add('collected');
+        // Clear trails to start fresh path to eyes
+        trails = [];
+        lastTrailPos = { x: player.x, y: player.y };
       }
 
       if (hasKey && !hasEyes && distance(player.x, player.y, EYES_POS.x, EYES_POS.y) < PICKUP_DISTANCE) {
@@ -394,6 +461,9 @@
       eyesIndicator.classList.remove('collected');
       messageEl.style.display = 'none';
       gameOverEl.style.display = 'none';
+      // Reset trails
+      trails = [];
+      lastTrailPos = { x: SPAWN_X, y: SPAWN_Y };
       // Reset obstacle positions
       obstacles.forEach(obs => {
         obs.x = obs.baseX;
@@ -554,6 +624,20 @@
         ctx.textBaseline = 'middle';
         ctx.fillText('🎁', GLOW_X, GLOW_Y);
       }
+
+      // Draw trails before princess
+      const currentTime = Date.now() / 1000;
+      trails.forEach(trail => {
+        const age = currentTime - trail.createdAt;
+        const opacity = 1 - (age / TRAIL_LIFETIME);
+
+        ctx.fillStyle = trail.color;
+        ctx.globalAlpha = opacity * 0.6;
+        ctx.beginPath();
+        ctx.arc(trail.x, trail.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
 
       // Draw princess
       const px = player.x;
