@@ -106,6 +106,39 @@
       font-size: 64px;
       margin-bottom: 20px;
     }
+    #instructions {
+      position: absolute;
+      bottom: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      padding: 6px 15px;
+      border-radius: 6px;
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      text-align: center;
+      line-height: 1.4;
+      max-width: 700px;
+      opacity: 0.8;
+    }
+    #instructions:hover {
+      opacity: 1;
+    }
+    #instructions .title {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 3px;
+      color: #FFD700;
+    }
+    #instructions .line {
+      margin: 2px 0;
+      display: inline;
+      margin-right: 12px;
+    }
+    #instructions .emoji {
+      margin: 0 2px;
+    }
   </style>
 </head>
 <body>
@@ -126,6 +159,12 @@
     <div id="gameOverMessage">
       <div>Ой! Ти наступила на щось неприємне 😱</div>
       <button onclick="resetGame()">Спробувати ще раз</button>
+    </div>
+    <div id="instructions">
+      <div class="title">📜 Інструкції</div>
+      <span class="line">⌨️ Стрілочки для руху</span>
+      <span class="line">⚠️ Обходь <span class="emoji">🕷️🐀🍌</span></span>
+      <span class="line">🎨 Сліди: червоний = близько, синій = далеко</span>
     </div>
   </div>
 
